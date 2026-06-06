@@ -1,13 +1,3 @@
-# ╔══════════════════════════════════════════════════════════════╗
-# ║  AutoDeploy v2.2 — GitHub Actions Workflow (STB Armbian Fix) ║
-# ║  Target: deployv2.akhzafachrozy.my.id                        ║
-# ╠══════════════════════════════════════════════════════════════╣
-# ║  CHANGELOG v2.2                                              ║
-# ║  [FIX-6] ZIP sekarang include dotfiles (.env.example, dll)   ║
-# ║  [FIX-6] Output summary menampilkan info permission          ║
-# ║  [FIX-7] Exclude .env dari ZIP (dibuat manual via SSH)       ║
-# ╚══════════════════════════════════════════════════════════════╝
-
 name: 🚀 AutoDeploy v2
 
 on:
@@ -39,9 +29,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # ──────────────────────────────────────────────────────
-  #  JOB 1: DETECT & VALIDATE
-  # ──────────────────────────────────────────────────────
   detect:
     name: 🔍 Detect & Validate
     runs-on: ubuntu-latest
@@ -57,7 +44,6 @@ jobs:
       - name: 🏷️ Generate repo slug
         id: slug
         run: |
-          # Mengubah nama repo GitHub menjadi format yang aman untuk linux user/folder
           SLUG=$(echo "${{ github.event.repository.name }}" \
             | tr '[:upper:]' '[:lower:]' \
             | sed 's/[^a-z0-9-]/-/g' \
@@ -85,12 +71,8 @@ jobs:
 
       - name: 🧪 PHP syntax lint
         run: |
-          # Cek syntax error sebelum kirim ke server
           find . -name "*.php" ! -path "./vendor/*" -exec php -l {} \; | grep "Errors parsing" && exit 1 || echo "✅ Syntax OK"
 
-  # ──────────────────────────────────────────────────────
-  #  JOB 2: PACKAGE & DEPLOY
-  # ──────────────────────────────────────────────────────
   deploy:
     name: 🚀 Package & Deploy
     runs-on: ubuntu-latest
@@ -105,26 +87,8 @@ jobs:
       - name: ⬇️ Checkout
         uses: actions/checkout@v4
 
-      # ──────────────────────────────────────────────
-      # [FIX-7] Buat ZIP dengan dotfiles tersertakan.
-      #
-      # Catatan penting:
-      #   • .env.example  → DISERTAKAN dalam ZIP agar mahasiswa punya template
-      #   • .env          → DIKECUALIKAN dari ZIP (berisi secret, dibuat manual via SSH)
-      #   • .htaccess     → DISERTAKAN (dotfile yang dibutuhkan web server)
-      #   • vendor/       → DIKECUALIKAN (berat, diinstall via composer di server)
-      #   • node_modules/ → DIKECUALIKAN (berat, diinstall via npm di server)
-      #   • storage/*.log → DIKECUALIKAN (log runtime, tidak perlu di-deploy)
-      #
-      # Perintah `zip` secara default MELEWATKAN dotfiles di beberapa implementasi.
-      # Solusi: gunakan `find` + `zip` untuk memastikan semua file (termasuk dotfiles)
-      # masuk ke dalam arsip.
-      # ──────────────────────────────────────────────
       - name: 📦 Create deployment ZIP (with dotfiles)
         run: |
-          # Kumpulkan semua file termasuk dotfiles menggunakan find,
-          # lalu pipe hasilnya ke zip. Ini memastikan .env.example, .htaccess,
-          # dan dotfiles lain tidak terlewat.
           find . \
             -not -path "./.git/*" \
             -not -path "./.github/*" \
@@ -135,7 +99,6 @@ jobs:
             -not -name "*.log" \
             | zip deploy.zip -@ -q
 
-          # Verifikasi dotfiles penting tersertakan dalam ZIP
           echo "--- Verifikasi dotfiles dalam ZIP ---"
           unzip -l deploy.zip | grep '^\.' || echo "(tidak ada dotfile di root, mungkin dalam subfolder)"
           unzip -l deploy.zip | grep -E '\.env\.example|\.htaccess|\.gitignore' || echo "(dotfile spesifik tidak ditemukan — pastikan file ada di repo)"
@@ -146,8 +109,6 @@ jobs:
       - name: 🌐 Send to deploy endpoint
         id: request
         run: |
-          # Kirim file ke AutoDeploy v2.2
-          # Menggunakan key 'autodeploy-classroom' agar mahasiswa tidak perlu setting secret key
           RESPONSE=$(curl -s -X POST \
             -H "User-Agent: GitHub-Actions-AutoDeploy-v2" \
             -F "key=autodeploy-classroom" \
@@ -171,7 +132,6 @@ jobs:
       - name: 📊 Parse ADPL Results
         if: always()
         run: |
-          # Parsing data dari prefix ADPL: yang ada di skrip PHP
           echo "P_DOMAIN=$(echo "${{ env.RAW_RESPONSE }}" | grep '^ADPL:domain=' | cut -d'=' -f2-)" >> "$GITHUB_ENV"
           echo "P_PORT=$(echo "${{ env.RAW_RESPONSE }}" | grep '^ADPL:port=' | cut -d'=' -f2-)" >> "$GITHUB_ENV"
           echo "P_SSH_USER=$(echo "${{ env.RAW_RESPONSE }}" | grep '^ADPL:ssh_user=' | cut -d'=' -f2-)" >> "$GITHUB_ENV"
@@ -184,7 +144,6 @@ jobs:
       - name: 📝 Job Summary
         if: always()
         run: |
-          # Membuat tampilan dashboard di GitHub Actions
           if [[ "${{ env.status }}" == "success" ]]; then
             ICON="✅"; STATUS_LABEL="Berhasil"
           else
@@ -205,11 +164,11 @@ jobs:
           | **File Owner** | \`${{ env.P_FILE_OWNER }}\` |
           | **ZIP Size** | \`${{ env.zip_size }}\` |
 
-          ## 💻 Akses SSH
-          \`\`\`bash
-          ${{ env.P_SSH_CMD }}
-          # Password: ${{ env.P_SSH_PASS }}
-          \`\`\`
+          ## 📘 Panduan Akses SSH
+
+          Untuk akses SSH dan langkah setup lanjutan, silakan ikuti tutorial berikut:
+
+          🔗 **Panduan Deployment:** https://github.com/akhzaozy/deploy
 
           ## 🔐 Informasi Permission (v2.2)
           > Semua file di-set ke **\`www:www\`** (folder: 775, file: 664).
@@ -237,9 +196,6 @@ jobs:
           </details>
           EOF
 
-  # ──────────────────────────────────────────────────────
-  #  JOB 3: NOTIFY (Optional)
-  # ──────────────────────────────────────────────────────
   notify:
     name: 📣 Notification
     runs-on: ubuntu-latest
