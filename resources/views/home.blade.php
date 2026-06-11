@@ -53,7 +53,7 @@
             </a>
             <nav class="nav-menu" id="navMenu" aria-label="Navigasi utama">
                 <a class="nav-link active" href="#beranda">Beranda</a>
-                <a class="nav-link" href="#tentang">Tentang</a>
+                <a class="nav-link" href="#tentang">Tentang Kami</a>
                 <a class="nav-link" href="#fasilitas">Fasilitas</a>
                 <a class="nav-link" href="#galeri">Galeri</a>
                 <a class="nav-link" href="#paket">Paket</a>
