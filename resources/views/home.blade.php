@@ -62,7 +62,7 @@
             </nav>
             <div class="nav-actions">
                 @if($waNumber)
-                    <a class="btn btn-ghost" href="https://wa.me/{{ $waNumber }}" target="_blank" rel="noopener">Reservasi</a>
+                    <a class="btn btn-ghost" href="https://wa.me/{{ $waNumber }}" target="_blank" rel="noopener">Reservation</a>
                 @endif
                 <button class="hamburger" id="hamburger" type="button" aria-label="Buka menu" aria-expanded="false" aria-controls="navMenu">
                     <span></span><span></span><span></span>
